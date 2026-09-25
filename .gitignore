@@ -1,1 +1,7 @@
- __pycache__/ *.pyc venv/ models/
+__pycache__/
+*.pyc
+venv/
+models/
+data/logs/
+data/stats.json
+data/postpones.json

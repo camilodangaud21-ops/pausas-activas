@@ -15,6 +15,7 @@ la pausa está activa, captura frames, extrae landmarks de pose y publica:
 Se detiene al recibir "stop_pause" y libera la cámara.
 """
 
+import logging
 import os
 import queue
 import time
@@ -22,6 +23,8 @@ import urllib.request
 
 from agents.base_agent import BaseAgent
 from core.messages import Message
+
+logger = logging.getLogger(__name__)
 
 try:
     import cv2
@@ -82,8 +85,8 @@ class VisionAgent(BaseAgent):
                 min_tracking_confidence=0.6,
             )
             self._landmarker = mp.tasks.vision.PoseLandmarker.create_from_options(options)
-        except Exception as exc:  # degradar sin tumbar el programa si falla la descarga/init
-            print(f"[VisionAgent] No se pudo inicializar MediaPipe Pose: {exc}")
+        except Exception:  # degradar sin tumbar el programa si falla la descarga/init
+            logger.exception("No se pudo inicializar MediaPipe Pose")
             self._landmarker = None
 
     def handle_message(self, message: Message) -> None:
@@ -115,6 +118,13 @@ class VisionAgent(BaseAgent):
 
     def _capture_loop(self) -> None:
         self._cap = cv2.VideoCapture(self.camera_index, cv2.CAP_DSHOW)
+        if not self._cap.isOpened():
+            logger.error("No se pudo abrir la cámara (index=%s)", self.camera_index)
+            self.send("landmarks", landmarks=None)
+            self._active = False
+            self._cap.release()
+            self._cap = None
+            return
         delay = 1.0 / self.target_fps
         while self._active and self._running.is_set():
             self._drain_control_messages()

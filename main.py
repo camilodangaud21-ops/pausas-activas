@@ -1,25 +1,33 @@
 """Punto de entrada del sistema multiagente de pausas activas.
 
 Arquitectura (ver README.md para el diagrama completo):
-  ConfigAgent          -> configuración persistente (config.json)
-  SchedulerAgent        -> temporizador, dispara "pause_due" cada X minutos
+  ConfigAgent           -> configuración persistente (config.json)
+  SchedulerAgent        -> temporizador, dispara "pause_due"/"pause_warning"
   VisionAgent           -> cámara + MediaPipe Pose -> "landmarks", "frame_ready"
-  ExerciseDetectorAgent -> elige ejercicio y evalúa "landmarks" -> progreso
-  LockScreenAgent       -> UI de bloqueo (hilo principal, Tkinter)
+  ExerciseDetectorAgent -> calibra, elige ejercicio y evalúa "landmarks"
+  StatsAgent            -> persiste estadísticas diarias de cumplimiento
+  TrayAgent             -> ícono de bandeja (opcional, requiere pystray)
+  LockScreenAgent       -> UI de bloqueo/aviso (hilo principal, Tkinter)
 
 Todos se comunican exclusivamente a través del MessageBus, sin referencias
 directas entre sí (bajo acoplamiento propio de un sistema multiagente).
 """
 
+import logging
 import tkinter as tk
 from tkinter import simpledialog
 
+from core.logging_config import setup_logging
 from core.message_bus import MessageBus
 from agents.config_agent import ConfigAgent
 from agents.scheduler_agent import SchedulerAgent
 from agents.vision_agent import VisionAgent
 from agents.exercise_detector_agent import ExerciseDetectorAgent
+from agents.stats_agent import StatsAgent
+from agents.tray_agent import TrayAgent
 from agents.lock_screen_agent import LockScreenAgent
+
+logger = logging.getLogger(__name__)
 
 
 def ask_interval(default_minutes: int) -> int:
@@ -36,6 +44,9 @@ def ask_interval(default_minutes: int) -> int:
 
 
 def main() -> None:
+    setup_logging()
+    logger.info("Iniciando Pausa Activa")
+
     bus = MessageBus()
 
     config_agent = ConfigAgent(bus)
@@ -49,12 +60,16 @@ def main() -> None:
     scheduler = SchedulerAgent(bus, interval_minutes=interval_minutes)
     vision = VisionAgent(bus, camera_index=camera_index)
     detector = ExerciseDetectorAgent(bus, activity_seconds_required=activity_seconds)
+    stats_agent = StatsAgent(bus)
+    tray_agent = TrayAgent(bus)
 
-    for agent in (config_agent, scheduler, vision, detector):
+    for agent in (config_agent, scheduler, vision, detector, stats_agent, tray_agent):
         agent.start()  # cada uno en su propio hilo
 
     lock_screen = LockScreenAgent(bus)  # corre en el hilo principal (Tkinter)
     lock_screen.start()
+
+    logger.info("Pausa Activa finalizado")
 
 
 if __name__ == "__main__":

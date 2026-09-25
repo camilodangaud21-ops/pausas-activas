@@ -1,3 +1,8 @@
-opencv-python
-mediapipe
-pillow
+# Núcleo: visión por computador y estimación de pose
+opencv-python==4.10.0.84
+mediapipe==0.10.14
+pillow==10.4.0
+
+# Opcional: ícono en la bandeja del sistema (TrayAgent). Si no está
+# instalado, el programa sigue funcionando y solo se omite el ícono.
+pystray==0.19.5
