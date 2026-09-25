@@ -1,0 +1,5 @@
+{
+  "interval_minutes": 1,
+  "camera_index": 0,
+  "activity_seconds_required": 60
+}
