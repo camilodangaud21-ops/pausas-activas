@@ -222,6 +222,13 @@ instaladas las dependencias. La wiki está en `wiki/`: el recurso
 de `wiki/conceptos/` y `crear_concepto` crea una nota nueva sin sobrescribir
 otra existente.
 
+La herramienta MCP `query_path` acepta `action="query_path"`, `source`,
+`target` y `max_hops` (predeterminado: 4). Devuelve el camino más corto y sus
+relaciones almacenadas, o `found: false` si no hay conexión documentada.
+Solo considera wikilinks a notas Markdown existentes, bajo `## Relaciones`
+con el formato `- relacion: [[ruta/id-sin-extension]]`. La herramienta
+`obsidian_add_links` valida destinos y no duplica enlaces.
+
 Para clientes HTTP, inicia el transporte Streamable HTTP:
 
 ```powershell

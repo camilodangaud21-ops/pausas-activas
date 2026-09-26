@@ -56,15 +56,17 @@ través de un `MessageBus` publicar/suscribir, sin llamarse entre sí.
 
 ## Estructura
 
-| Ruta | Contenido |
-| --- | --- |
-| `core/` | Bus de mensajes, `Message`, geometría, logging, almacén de estadísticas. |
-| `agents/` | Los agentes: configuración, temporizador, visión, detector de ejercicio, estadísticas, bandeja del sistema, bloqueo de pantalla. |
-| `exercises/` | Detectores de ejercicio: funciones puras sobre landmarks, sin dependencias de cámara. |
-| `test/` | Pruebas con pytest; no requieren cámara ni MediaPipe (usan landmarks sintéticos). |
-| `scripts/` | Utilidades independientes del programa principal (ej. autoarranque en Windows). |
-| `data/` | Estado en tiempo de ejecución: logs, `stats.json`, `postpones.json`. No se commitea. |
-| `models/` | Modelo `.task` de MediaPipe, descargado en el primer arranque. No se commitea. |
+| Ruta         | Contenido                                                                                                                        |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `core/`      | Bus de mensajes, `Message`, geometría, logging, almacén de estadísticas.                                                         |
+| `agents/`    | Los agentes: configuración, temporizador, visión, detector de ejercicio, estadísticas, bandeja del sistema, bloqueo de pantalla. |
+| `exercises/` | Detectores de ejercicio: funciones puras sobre landmarks, sin dependencias de cámara.                                            |
+| `wiki_mcp/`  | Servidor MCP, orquestador y consultas basadas en relaciones verificadas de la wiki.                                              |
+| `wiki/`      | Conocimiento Markdown; las aristas son wikilinks explícitos a notas existentes.                                                  |
+| `test/`      | Pruebas con pytest; no requieren cámara ni MediaPipe (usan landmarks sintéticos).                                                |
+| `scripts/`   | Utilidades independientes del programa principal (ej. autoarranque en Windows).                                                  |
+| `data/`      | Estado en tiempo de ejecución: logs, `stats.json`, `postpones.json`. No se commitea.                                             |
+| `models/`    | Modelo `.task` de MediaPipe, descargado en el primer arranque. No se commitea.                                                   |
 
 ## Flujo obligatorio
 

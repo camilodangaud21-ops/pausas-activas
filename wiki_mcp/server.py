@@ -8,6 +8,9 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
+from wiki_mcp.knowledge_agent import KnowledgeAgent
+from wiki_mcp.orchestrator import KnowledgeOrchestrator
+
 WIKI_ROOT = Path(__file__).resolve().parents[1] / "wiki"
 CONCEPTS_ROOT = WIKI_ROOT / "conceptos"
 
@@ -34,7 +37,18 @@ def _concept_slug(name: str) -> str:
     return re.sub(r"[ _]+", "-", normalized).strip("-")
 
 
-def create_concept(name: str, concept_type: str, content: str) -> str:
+def obsidian_add_links(source_id: str, target_ids: list[str], relation: str) -> str:
+    """Add explicit Obsidian links only to Markdown notes that exist in the wiki."""
+    return KnowledgeAgent(WIKI_ROOT).add_links(source_id, target_ids, relation)
+
+
+def create_concept(
+    name: str,
+    concept_type: str,
+    content: str,
+    related_ids: list[str] | None = None,
+    relation: str = "relacionado_con",
+) -> str:
     """Create a Markdown concept without overwriting existing wiki content."""
     title = name.strip()
     kind = concept_type.strip()
@@ -46,6 +60,11 @@ def create_concept(name: str, concept_type: str, content: str) -> str:
         raise ValueError("El contenido no puede estar vacío.")
 
     destination = CONCEPTS_ROOT / f"{_concept_slug(title)}.md"
+    note_id = destination.relative_to(WIKI_ROOT).with_suffix("").as_posix()
+    if related_ids:
+        knowledge_agent = KnowledgeAgent(WIKI_ROOT)
+        knowledge_agent.validate_relation(relation)
+        knowledge_agent.validate_link_targets(related_ids)
     frontmatter = (
         "---\n"
         f"type: {json.dumps(kind, ensure_ascii=False)}\n"
@@ -59,6 +78,8 @@ def create_concept(name: str, concept_type: str, content: str) -> str:
             concept_file.write(frontmatter + content.rstrip() + "\n")
     except FileExistsError:
         return f"El concepto '{title}' ya existe; no se modificó."
+    if related_ids:
+        obsidian_add_links(note_id, related_ids, relation)
     return f"Creado conceptos/{destination.name}"
 
 
@@ -69,6 +90,7 @@ def build_server(host: str = "127.0.0.1", port: int = 8765) -> FastMCP:
         host=host,
         port=port,
     )
+    orchestrator = KnowledgeOrchestrator(KnowledgeAgent(WIKI_ROOT))
 
     @server.resource("wiki://index")
     def wiki_index() -> str:
@@ -80,9 +102,32 @@ def build_server(host: str = "127.0.0.1", port: int = 8765) -> FastMCP:
         return list_concepts()
 
     @server.tool()
-    def crear_concepto(nombre: str, tipo: str, contenido: str) -> str:
-        """Crea un concepto Markdown nuevo, sin reemplazar uno existente."""
-        return create_concept(nombre, tipo, contenido)
+    def crear_concepto(
+        nombre: str,
+        tipo: str,
+        contenido: str,
+        related_ids: list[str] | None = None,
+        relation: str = "relacionado_con",
+    ) -> str:
+        """Crea un concepto nuevo y enlaza solo los destinos existentes indicados."""
+        return create_concept(nombre, tipo, contenido, related_ids, relation)
+
+    @server.tool(name="query_path")
+    def consultar_camino(
+        action: str,
+        source: str,
+        target: str,
+        max_hops: int = 4,
+    ) -> dict[str, object]:
+        """Busca un camino usando solo relaciones guardadas en wikilinks explícitos."""
+        return orchestrator.execute(
+            {"action": action, "source": source, "target": target, "max_hops": max_hops}
+        )
+
+    @server.tool()
+    def obsidian_add_links(source_id: str, target_ids: list[str], relation: str) -> str:
+        """Añade enlaces Obsidian a notas existentes, sin duplicar destinos."""
+        return KnowledgeAgent(WIKI_ROOT).add_links(source_id, target_ids, relation)
 
     return server
 

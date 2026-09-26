@@ -15,3 +15,4 @@
 - [MCP](conceptos/mcp.md): interfaz de la wiki para los arneses.
 
 El servidor ofrece este documento como recurso `wiki://index`.
+Las relaciones verificables se guardan como wikilinks bajo `## Relaciones` y se consultan con la herramienta MCP `query_path`.
