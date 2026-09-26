@@ -43,15 +43,15 @@ flowchart LR
     Bus -- request_interval_dialog / quit_app --> LOCK
 ```
 
-| Agente | Rol | Escucha | Publica |
-|---|---|---|---|
-| `ConfigAgent` | Dueño de `config.json` | `set_interval` | `config_updated` |
-| `SchedulerAgent` | Temporizador, aviso previo y posposiciones limitadas | `config_updated`, `pause_resolved`, `postpone_pause`, `set_enabled` | `pause_due`, `pause_warning`, `tick`, `postpone_result`, `enabled_state` |
-| `VisionAgent` | Cámara + MediaPipe Pose | `start_pause`, `stop_pause` | `landmarks`, `frame_ready` |
-| `ExerciseDetectorAgent` | Calibra encuadre, elige ejercicio y mide progreso | `start_pause`, `stop_pause`, `landmarks` | `exercise_selected`, `exercise_progress`, `exercise_complete`, `calibration_status` |
-| `StatsAgent` | Persiste estadísticas diarias (`data/stats.json`) | `exercise_complete`, `postpone_result`, `emergency_unlock_used`, `request_stats_today` | `stats_today` |
-| `TrayAgent` (opcional) | Ícono de bandeja: pausar programa, ver stats, cambiar intervalo, salir | `enabled_state`, `config_updated` | `set_enabled`, `request_interval_dialog`, `set_interval`, `quit_app` |
-| `LockScreenAgent` | Bloqueo de pantalla y aviso previo (UI) | `pause_due`, `pause_warning`, `exercise_selected`, `exercise_progress`, `exercise_complete`, `frame_ready`, `tick`, `postpone_result`, `calibration_status`, `request_interval_dialog`, `quit_app` | `start_pause`, `stop_pause`, `pause_resolved`, `postpone_pause`, `set_interval`, `emergency_unlock_used` |
+| Agente                  | Rol                                                                    | Escucha                                                                                                                                                                                            | Publica                                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `ConfigAgent`           | Dueño de `config.json`                                                 | `set_interval`                                                                                                                                                                                     | `config_updated`                                                                                         |
+| `SchedulerAgent`        | Temporizador, aviso previo y posposiciones limitadas                   | `config_updated`, `pause_resolved`, `postpone_pause`, `set_enabled`                                                                                                                                | `pause_due`, `pause_warning`, `tick`, `postpone_result`, `enabled_state`                                 |
+| `VisionAgent`           | Cámara + MediaPipe Pose                                                | `start_pause`, `stop_pause`                                                                                                                                                                        | `landmarks`, `frame_ready`                                                                               |
+| `ExerciseDetectorAgent` | Calibra encuadre, elige ejercicio y mide progreso                      | `start_pause`, `stop_pause`, `landmarks`                                                                                                                                                           | `exercise_selected`, `exercise_progress`, `exercise_complete`, `calibration_status`                      |
+| `StatsAgent`            | Persiste estadísticas diarias (`data/stats.json`)                      | `exercise_complete`, `postpone_result`, `emergency_unlock_used`, `request_stats_today`                                                                                                             | `stats_today`                                                                                            |
+| `TrayAgent` (opcional)  | Ícono de bandeja: pausar programa, ver stats, cambiar intervalo, salir | `enabled_state`, `config_updated`                                                                                                                                                                  | `set_enabled`, `request_interval_dialog`, `set_interval`, `quit_app`                                     |
+| `LockScreenAgent`       | Bloqueo de pantalla y aviso previo (UI)                                | `pause_due`, `pause_warning`, `exercise_selected`, `exercise_progress`, `exercise_complete`, `frame_ready`, `tick`, `postpone_result`, `calibration_status`, `request_interval_dialog`, `quit_app` | `start_pause`, `stop_pause`, `pause_resolved`, `postpone_pause`, `set_interval`, `emergency_unlock_used` |
 
 Cada ejercicio (`exercises/squats.py`, `jumping_jacks.py`, `arm_raises.py`)
 implementa la misma interfaz (`BaseExercise`), así que **agregar un nuevo
@@ -203,3 +203,35 @@ vuelva a romper la Tasks API sin aviso.
   nativa de Windows con `win10toast` en vez de una ventana Tkinter): basta
   con suscribirse a `pause_warning` / `stats_today` en un agente nuevo, sin
   tocar `SchedulerAgent` ni `StatsAgent`.
+
+## Wiki MCP del proyecto
+
+El servidor MCP expone la wiki Markdown del proyecto para que un arnés pueda
+consultarla y ampliarla. Es independiente del proceso de pausas activas.
+
+```powershell
+python -m venv venv
+venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python -m wiki_mcp.server
+```
+
+VS Code puede iniciarlo automáticamente desde `.vscode/mcp.json` una vez
+instaladas las dependencias. La wiki está en `wiki/`: el recurso
+`wiki://index` es su punto de entrada, `listar_conceptos` enumera las notas
+de `wiki/conceptos/` y `crear_concepto` crea una nota nueva sin sobrescribir
+otra existente.
+
+Para clientes HTTP, inicia el transporte Streamable HTTP:
+
+```powershell
+python -m wiki_mcp.server --transport streamable-http --host 127.0.0.1 --port 8765
+```
+
+El endpoint MCP queda en `http://127.0.0.1:8765/mcp`. El servidor se enlaza
+por defecto a `127.0.0.1`; usa otra interfaz solo si necesitas acceso remoto
+y puedes proteger ese acceso.
+
+Las reglas de trabajo están en `AGENTS.md`. El registro local está en
+`📋 Proyectos/Pausa Activa.md` y el índice de habilidades en
+`INDICE_DE_SKILLS.md`.

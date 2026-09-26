@@ -1,0 +1,240 @@
+# 🤝 Simbiosis: crea tu MCP con forma wiki y conéctalo a cualquier arnés
+
+**Profesor:** Gerardo Esquivia — Electiva Tecnológica (UNICOLOMBO)
+
+> Esta guía te lleva de cero a un **agente con MCP** que expone un conocimiento **con forma
+> wiki** (una carpeta de Markdown) y que **cualquier arnés** (VS Code, Claude Code, una web o
+> un script) puede consultar y alimentar. Ese intercambio —el agente usa el conocimiento y el
+> conocimiento crece con su trabajo— es la **simbiosis**.
+
+---
+
+## 0 · La base de la fábrica (arranca tu proyecto BIEN)
+
+> Antes de crear tu agente/MCP, la base de la fábrica de conocimiento se asegura siguiendo el
+> skill **`arranque-proyectos`**. Es el **punto de partida obligatorio** de todo proyecto:
+> sin esta base, el conocimiento no queda registrado y no hay simbiosis (el agente actuaría a ciegas).
+
+### 0.1 Verificar el OKF (regla fundacional)
+
+Antes de iniciar cualquier proyecto, **consulta si ya existe conocimiento** que aplique:
+revisa proyectos, técnicas, errores resueltos y el registro. No reinventes lo que ya está
+resuelto. Si hallas duplicados → evítalos.
+
+### 0.2 Estructura mínima del workspace
+
+```
+{proyecto}/
+├── AGENTS.md                  ← reglas + frontmatter (obligatorio)
+├── README.md                  ← descripción (recomendado)
+├── .vscode/                   ← config del editor (mcp.json va aquí)
+├── .venv/ o entorno           ← entorno de ejecución aislado
+├── {insumos|data|src}/        ← datos de entrada y scripts
+├── {scripts}/                 ← scripts de generación / automatización
+└── output/                    ← entregables
+```
+
+### 0.3 Crear el AGENTS.md (frontmatter + reglas)
+
+```yaml
+---
+type: Proyecto
+title: "Nombre del Proyecto — Propósito"
+description: "Resumen de una frase"
+status: idea | desarrollo | publicado
+tags: [python, mcp, agente, wiki]
+timestamp: YYYY-MM-DD
+creator: "Gerardo Esquivia Zapata"
+---
+```
+
+Reglas mínimas del cuerpo:
+1. **Convenciones obligatorias** (las que no se negocian).
+2. **Estructura** del workspace (tabla rutas → contenido).
+3. **Scripts** y cómo ejecutarlos (tabla: script → comando → salida).
+4. **Datos de referencia** del proyecto.
+5. **Rutas directas** del agente: su nota en `📋 Proyectos/` y el `INDICE_DE_SKILLS.md`.
+6. **Enlaces** al OKF.
+
+### 0.4 Regla de librerías (local primero)
+
+Cada dependencia (Python, JS, etc.) se resuelve SIEMPRE en este orden:
+1. ¿Existe en el repo local `C:\Users\TUF\Documents\librerías\local\`? → **usar la copia local**.
+2. ¿Hay repo para descargarla? (pip, npm, GitHub, CDN) → descargar → copiar al repo local → usar local.
+3. No se puede descargar → **reportar** y **generar un `.md`** con cómo usarla + documentación.
+
+### 0.5 Entorno de ejecución
+
+Crea un entorno aislado (`.venv` con Python, o `package.json` con Node). Declara TODAS las
+dependencias (nunca `pip install` a ciegas) y documenta cómo activarlo en tu `AGENTS.md`.
+
+### 0.6 Registrar en el OKF (obligatorio)
+
+1. Crea la **nota de proyecto** en `📋 Proyectos/{Nombre}.md` con las secciones
+   Propósito · Meta · Metodología · Estrategia · Archivos y Formas Creadas · Resultados.
+2. Añade **wikilinks** a técnicas/referencias relacionadas.
+3. **Inscribe el proyecto en el índice** de proyectos con su propósito/meta.
+4. (Opcional) Deja la técnica/skill reutilizable en `🧠 Técnicas/`.
+
+> ✅ Con esta base, tu proyecto ya hace parte de la fábrica de conocimiento y cada doc que
+> generes dejará técnica para reutilizar (simbiosis).
+
+---
+
+## 🧭 Qué es cada pieza
+
+| Pieza | Qué es | Ejemplo |
+|---|---|---|
+| **Wiki / conocimiento** | Carpeta de archivos `.md`. `index.md` es el mapa. | `wiki/` con conceptos |
+| **MCP (servidor)** | Programa que expone la wiki como recursos y herramientas. | `wiki-mcp` |
+| **Arnés / harness** | Cliente que se conecta al MCP (tu IDE, un chat, un script). | VS Code, curl |
+| **Simbiosis** | El agente lee el conocimiento, actúa y deja su huella → el grafo crece. | ciclos |
+
+---
+
+## 📁 Paso 1 — La wiki (tu conocimiento)
+
+```
+wiki/
+├── index.md        ← MAPA: qué hay aquí y qué hacer al entrar
+├── instrucciones.md← reglas del agente
+├── tareas.md       ← qué se ejecuta recurrentemente
+└── conceptos/
+    ├── agente.md
+    └── grafo.md
+```
+
+### `wiki/index.md` — la puerta de entrada
+
+```markdown
+# Mi Wiki
+
+## Qué hace el agente al entrar (orden)
+1. Lee este índice.
+2. Lee `instrucciones.md`.
+3. Consulta `tareas.md`.
+4. Ejecuta y registra.
+```
+
+### Cada concepto lleva frontmatter
+
+```markdown
+---
+type: Concepto
+title: "Agente"
+description: "Modelo + harness"
+tags: [ia]
+---
+# Agente
+Modelo (decide) + harness (herramientas y prompt).
+```
+
+---
+
+## ⚙️ Paso 2 — Servidor MCP mínimo (Python + uv)
+
+```bash
+uv init wiki-mcp
+cd wiki-mcp
+uv add "mcp>=1.2,<2"
+```
+
+`src/wiki_mcp/server.py`:
+
+```python
+from __future__ import annotations
+from pathlib import Path
+from mcp.server.fastmcp import FastMCP   # mcp 1.x
+
+WIKI = Path(__file__).resolve().parents[2] / "wiki"
+mcp = FastMCP(name="wiki-mcp", instructions="Wiki servida por MCP.")
+
+@mcp.resource("wiki://index")
+def indice() -> str:
+    return (WIKI / "index.md").read_text(encoding="utf-8")
+
+@mcp.tool()
+def listar_conceptos() -> str:
+    """Lista los conceptos del wiki."""
+    return "\n".join(p.stem for p in WIKI.rglob("*.md"))
+
+@mcp.tool()
+def crear_concepto(nombre: str, tipo: str, contenido: str) -> str:
+    """Crea un concepto .md (deja huella del agente)."""
+    (WIKI / f"{nombre}.md").write_text(
+        f"---\ntype: {tipo}\ntitle: {nombre}\n---\n\n{contenido}\n", encoding="utf-8")
+    return f"Creado {nombre}.md"
+
+if __name__ == "__main__":
+    mcp.run()   # stdio
+```
+
+> **Nota:** con mcp 2.x el nombre es `MCPServer` (`from mcp.server.mcpserver import MCPServer`). Misma idea.
+
+---
+
+## 🔌 Paso 3 — Conéctalo a cualquier arnés
+
+### A) VS Code / Claude Code (stdio) — `.vscode/mcp.json`
+
+```json
+{
+  "servers": {
+    "wiki": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["--directory", "C:\\ruta\\wiki-mcp", "run", "wiki-mcp"]
+    }
+  }
+}
+```
+
+### B) Como servidor HTTP (para web/curl/agentes remotos)
+
+```bash
+uv run python -c "from src.wiki_mcp.server import mcp; mcp.run(transport='streamable-http', host='127.0.0.1', port=8765)"
+```
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"resources/list","params":{}}'
+```
+
+### C) Cliente genérico (Python, sin SDK)
+
+```python
+import json, urllib.request
+msg = {"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}
+req = urllib.request.Request("http://127.0.0.1:8765/mcp", data=json.dumps(msg).encode(),
+     headers={"Content-Type":"application/json","Accept":"application/json, text/event-stream"})
+print(urllib.request.urlopen(req).read().decode())
+```
+
+---
+
+## 🔁 El flujo que garantiza la simbiosis
+
+1. **Autre por el índice** → `wiki://index`.
+2. **Autra instrucciones** → `instrucciones.md`.
+3. **Autra tarea** → `tareas.md` (o el parcial).
+4. **Ejecuta** las herramientas.
+5. **Registra** → `crear_concepto` (deja tu aporte al conocimiento).
+
+> Regla de oro: **todo agente entra por el índice** y busca sus instrucciones. Así no actúa a
+> ciegas, y el conocimiento crece con cada uno (simbiosis).
+
+---
+
+## ✅ Lista de verificación (para tu parcial)
+
+- [ ] `wiki/index.md` dice QUÉ hace el agente al entrar (orden).
+- [ ] Conceptos con frontmatter (`type` obligatorio).
+- [ ] Servidor MCP con `@mcp.resource` y `@mcp.tool`.
+- [ ] Conectado a un arnés (VS Code o HTTP).
+- [ ] `listar_conceptos` responde y `crear_concepto` deja un `.md` nuevo.
+- [ ] Registrado/guardado en tu OKF.
+
+> 📖 Más contexto: `https://gerardoesquivia.com/cerebro-mcp/` · `https://gerardoesquivia.com/open-knowledge-format/`
+> — Gerardo Esquivia Zapata
